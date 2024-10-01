@@ -20,6 +20,11 @@ import { sql } from '@vercel/postgres'
 import { put } from '@vercel/blob'
 import { kv } from '@vercel/kv'
 
+console.log("Umgebungsvariablen:", {
+  POSTGRES_URL: process.env.POSTGRES_URL,
+  NEXT_PUBLIC_POSTGRES_URL: process.env.NEXT_PUBLIC_POSTGRES_URL
+});
+
 const localizer = dateFnsLocalizer({
   format,
   parse,

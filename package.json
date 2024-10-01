@@ -34,7 +34,8 @@
     "react-dom": "18.2.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "5.2.2"
+    "typescript": "5.2.2",
+    "utf-8-validate": "^6.0.4"
   },
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",
