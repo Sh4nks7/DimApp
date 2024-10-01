@@ -280,6 +280,28 @@ const Auftragsverwaltung: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('month')
   const printRef = useRef<HTMLDivElement>(null)
 
+  const testDatabaseConnection = async () => {
+    try {
+      const result = await sql`SELECT NOW()`;
+      console.log("Datenbankverbindung erfolgreich:", result);
+    } catch (error) {
+      console.error("Fehler bei der Datenbankverbindung:", error);
+    }
+  };
+
+  const checkTableStructure = async () => {
+    try {
+      const result = await sql`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'auftraege'
+      `;
+      console.log("Tabellenstruktur:", result);
+    } catch (error) {
+      console.error("Fehler beim Überprüfen der Tabellenstruktur:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchAuftraege = async () => {
       try {
@@ -295,6 +317,8 @@ const Auftragsverwaltung: React.FC = () => {
       }
     }
     fetchAuftraege()
+    testDatabaseConnection()
+    checkTableStructure()
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -313,7 +337,6 @@ const Auftragsverwaltung: React.FC = () => {
       setNeuerAuftrag({ ...neuerAuftrag, importance: value })
     }
   }
-
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -337,8 +360,11 @@ const Auftragsverwaltung: React.FC = () => {
   }
 
   const handleSubmit = useCallback(async () => {
+    console.log("handleSubmit wurde aufgerufen");
+    console.log("Umgebungsvariablen:", process.env);
     try {
       if (bearbeiteterAuftrag) {
+        console.log("Bearbeite existierenden Auftrag:", bearbeiteterAuftrag);
         await sql`
           UPDATE auftraege
           SET kunde = ${bearbeiteterAuftrag.kunde},
@@ -357,6 +383,7 @@ const Auftragsverwaltung: React.FC = () => {
           prevAuftraege.map(a => a.id === bearbeiteterAuftrag.id ? bearbeiteterAuftrag : a)
         )
       } else {
+        console.log("Füge neuen Auftrag hinzu:", neuerAuftrag);
         const { rows } = await sql`
           INSERT INTO auftraege (
             nummer, kunde, adresse, mieter, telNr, email, problem, pdfFiles, status, erstelltAm, importance
@@ -375,6 +402,7 @@ const Auftragsverwaltung: React.FC = () => {
           )
           RETURNING *
         `
+        console.log("SQL-Abfrage erfolgreich ausgeführt, Ergebnis:", rows);
         const newAuftrag = {
           ...rows[0],
           erstelltAm: new Date(rows[0].erstelltAm),
@@ -387,7 +415,11 @@ const Auftragsverwaltung: React.FC = () => {
       setNeuerAuftrag({ kunde: '', adresse: '', mieter: '', telNr: '', email: '', problem: '', pdfFiles: [], importance: 'Normal' })
       setBearbeiteterAuftrag(null)
     } catch (error) {
-      console.error('Fehler beim Speichern des Auftrags:', error)
+      console.error('Detaillierter Fehler beim Speichern des Auftrags:', error);
+      if (error instanceof Error) {
+        console.error('Fehlermeldung:', error.message);
+        console.error('Stacktrace:', error.stack);
+      }
     }
   }, [bearbeiteterAuftrag, neuerAuftrag, nextAuftragNummer])
 
@@ -515,35 +547,43 @@ const Auftragsverwaltung: React.FC = () => {
       resource: auftrag
     }))
 
-    return (
-      <DndProvider backend={HTML5Backend}>
-        <div className="p-4 max-w-full overflow-x-hidden">
-          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="flex items-center mb-2 sm:mb-0">
-            </div>
-            <div className="flex space-x-2">
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="mr-2 h-4 w-4" /> Neuer Auftrag</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>{bearbeiteterAuftrag ? 'Auftrag bearbeiten' : 'Neuer Auftrag'}</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <Input name="kunde" placeholder="Kunde" value={bearbeiteterAuftrag?.kunde || neuerAuftrag.kunde} onChange={handleInputChange} />
-                    <Input name="adresse" placeholder="Adresse" value={bearbeiteterAuftrag?.adresse || neuerAuftrag.adresse} onChange={handleInputChange} />
-                    <Input name="mieter" placeholder="Mieter" value={bearbeiteterAuftrag?.mieter || neuerAuftrag.mieter} onChange={handleInputChange} />
-                    <Input name="telNr" placeholder="Tel. Nr." value={bearbeiteterAuftrag?.telNr || neuerAuftrag.telNr} onChange={handleInputChange} />
-                    <Input name="email" placeholder="E-Mail" value={bearbeiteterAuftrag?.email || neuerAuftrag.email} onChange={handleInputChange} />
-                    <Textarea 
-                      name="problem" 
-                      placeholder="Problem" 
-                      value={bearbeiteterAuftrag?.problem || neuerAuftrag.problem} 
-                      onChange={handleInputChange}
-                      rows={5}
-                    />
-                    <Input name="pdfFiles" type="file" accept=".pdf" onChange={handleFileChange} multiple />
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="p-4 max-w-full overflow-x-hidden">
+        <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="flex items-center mb-2 sm:mb-0">
+            <Image
+              src="/placeholder.svg"
+              alt="Dimbau Logo"
+              width={50}
+              height={50}
+              className="mr-2"
+            />
+            <h1 className="text-2xl font-bold">Auftragsverwaltung</h1>
+          </div>
+          <div className="flex space-x-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" /> Neuer Auftrag</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{bearbeiteterAuftrag ? 'Auftrag bearbeiten' : 'Neuer Auftrag'}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <Input name="kunde" placeholder="Kunde" value={bearbeiteterAuftrag?.kunde || neuerAuftrag.kunde} onChange={handleInputChange} />
+                  <Input name="adresse" placeholder="Adresse" value={bearbeiteterAuftrag?.adresse || neuerAuftrag.adresse} onChange={handleInputChange} />
+                  <Input name="mieter" placeholder="Mieter" value={bearbeiteterAuftrag?.mieter || neuerAuftrag.mieter} onChange={handleInputChange} />
+                  <Input name="telNr" placeholder="Tel. Nr." value={bearbeiteterAuftrag?.telNr || neuerAuftrag.telNr} onChange={handleInputChange} />
+                  <Input name="email" placeholder="E-Mail" value={bearbeiteterAuftrag?.email || neuerAuftrag.email} onChange={handleInputChange} />
+                  <Textarea 
+                    name="problem" 
+                    placeholder="Problem" 
+                    value={bearbeiteterAuftrag?.problem || neuerAuftrag.problem} 
+                    onChange={handleInputChange}
+                    rows={5}
+                  />
+                  <Input name="pdfFiles" type="file" accept=".pdf" onChange={handleFileChange} multiple />
                   {(bearbeiteterAuftrag?.pdfFiles || []).map((file, index) => (
                     <div key={index} className="flex items-center">
                       <FileText className="h-4 w-4 mr-2" />
