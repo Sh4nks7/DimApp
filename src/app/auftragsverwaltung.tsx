@@ -18,12 +18,21 @@ import { Calendar as BigCalendar, dateFnsLocalizer, View } from 'react-big-calen
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { sql } from '@vercel/postgres'
 import { put } from '@vercel/blob'
-import { kv } from '@vercel/kv'
 
-console.log("Umgebungsvariablen:", {
-  POSTGRES_URL: process.env.POSTGRES_URL,
-  NEXT_PUBLIC_POSTGRES_URL: process.env.NEXT_PUBLIC_POSTGRES_URL
-});
+
+console.log("POSTGRES_URL:", process.env.POSTGRES_URL);
+
+// Stellen Sie sicher, dass dieser Code in einer asynchronen Funktion ausgeführt wird
+async function testDatabaseConnection() {
+  try {
+    const result = await sql`SELECT NOW()`;
+    console.log("Datenbankverbindung erfolgreich:", result);
+  } catch (error) {
+    console.error("Fehler bei der Datenbankverbindung:", error);
+  }
+}
+
+testDatabaseConnection();
 
 const localizer = dateFnsLocalizer({
   format,
